@@ -383,9 +383,9 @@ class TestGetYouTubeClient:
     
     def test_creates_client_with_api_key(self):
         """Test factory function creates client with provided API key."""
-        from src.youtube_client import get_youtube_client
+        from src.youtube_client import get_youtube_client, YouTubeClient
         
         client = get_youtube_client(api_key='test_key')
         
-        assert isinstance(client, type(client))  # It's a YouTubeClient
+        assert isinstance(client, YouTubeClient)
         assert client._api_key == 'test_key'
