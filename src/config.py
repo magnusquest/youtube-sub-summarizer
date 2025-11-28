@@ -23,16 +23,21 @@ SMTP_USERNAME = os.getenv('SMTP_USERNAME')
 SMTP_PASSWORD = os.getenv('SMTP_PASSWORD')
 EMAIL_RECIPIENT = os.getenv('EMAIL_RECIPIENT')
 
-# Validate required variables
-required_vars = [
-    'YOUTUBE_API_KEY',
-    'OPENAI_API_KEY',
-    'SMTP_SERVER',
-    'SMTP_USERNAME',
-    'SMTP_PASSWORD',
-    'EMAIL_RECIPIENT'
-]
-
-for var in required_vars:
-    if not os.getenv(var):
-        raise ValueError(f"Missing required environment variable: {var}")
+def validate_config():
+    """Validate that all required environment variables are set.
+    
+    Raises:
+        ValueError: If any required environment variable is missing.
+    """
+    required_vars = [
+        'YOUTUBE_API_KEY',
+        'OPENAI_API_KEY',
+        'SMTP_SERVER',
+        'SMTP_USERNAME',
+        'SMTP_PASSWORD',
+        'EMAIL_RECIPIENT'
+    ]
+    
+    missing_vars = [var for var in required_vars if not os.getenv(var)]
+    if missing_vars:
+        raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
