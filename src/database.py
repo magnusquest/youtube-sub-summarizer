@@ -10,7 +10,7 @@ import os
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -180,18 +180,18 @@ class Database:
             ''')
             status_breakdown = {row['status']: row['count'] for row in cursor.fetchall()}
             
-            # Recent activity
+            # Recent activity - use 'utc' modifier for consistent UTC comparison
             cursor = conn.execute('''
                 SELECT COUNT(*) as count 
                 FROM processed_videos 
-                WHERE date(processed_at) = date('now')
+                WHERE date(processed_at) = date('now', 'utc')
             ''')
             today = cursor.fetchone()['count']
             
             cursor = conn.execute('''
                 SELECT COUNT(*) as count 
                 FROM processed_videos 
-                WHERE date(processed_at) >= date('now', '-7 days')
+                WHERE date(processed_at) >= date('now', '-7 days', 'utc')
             ''')
             this_week = cursor.fetchone()['count']
             
@@ -202,7 +202,7 @@ class Database:
                 'processed_this_week': this_week
             }
     
-    def get_failed_videos(self, limit: int = 10) -> list[dict]:
+    def get_failed_videos(self, limit: int = 10) -> list[dict[str, Any]]:
         """Get list of recently failed videos.
         
         Args:
@@ -222,7 +222,7 @@ class Database:
             
             return [dict(row) for row in cursor.fetchall()]
     
-    def get_videos_by_channel(self, channel_id: str, limit: int = 50) -> list[dict]:
+    def get_videos_by_channel(self, channel_id: str, limit: int = 50) -> list[dict[str, Any]]:
         """Get all processed videos from a specific channel.
         
         Args:
@@ -254,7 +254,7 @@ class Database:
         with self._get_connection() as conn:
             cursor = conn.execute('''
                 DELETE FROM processed_videos
-                WHERE date(processed_at) < date('now', '-' || ? || ' days')
+                WHERE date(processed_at) < date('now', '-' || ? || ' days', 'utc')
             ''', (days,))
             conn.commit()
             

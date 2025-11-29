@@ -213,9 +213,11 @@ class TestMarkVideoProcessed:
         
         db = Database(':memory:')
         
+        # video_id and title are truly required (KeyError if missing)
+        # channel_id, channel_name, published_at will default to empty string
         video_data = {
             'video_id': 'test123',
-            'title': 'Test Video'  # Only required fields
+            'title': 'Test Video'
         }
         db.mark_video_processed(video_data)
         
