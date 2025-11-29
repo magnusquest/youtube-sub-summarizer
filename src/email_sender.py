@@ -12,6 +12,7 @@ Example SMTP Configuration:
 - Outlook: smtp-mail.outlook.com:587
 """
 
+import html
 import logging
 import os
 import smtplib
@@ -106,7 +107,9 @@ class EmailSender:
                     logger.error(f"Failed to send email after {max_retries} attempts")
                     raise
 
-        return False
+        # This line is technically unreachable because the loop either returns True
+        # or raises an exception, but it satisfies the type checker
+        return False  # pragma: no cover
 
     def _create_message(
         self,
@@ -190,8 +193,6 @@ class EmailSender:
         )
 
         # Escape HTML special characters in user-provided content
-        import html
-
         channel_name = html.escape(channel_name)
         video_title = html.escape(video_title)
         summary = html.escape(summary)
