@@ -250,7 +250,7 @@ class TestChunkTranscript:
         from src.summarizer import chunk_transcript
 
         # Create a long transcript (use small max_tokens for testing)
-        long_text = ". ".join(["This is sentence number " + str(i) for i in range(100)])
+        long_text = ". ".join([f"This is sentence number {i}" for i in range(100)])
         chunks = chunk_transcript(long_text, max_tokens=50)  # ~200 chars max
 
         assert len(chunks) > 1

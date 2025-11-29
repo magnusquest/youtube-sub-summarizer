@@ -229,19 +229,33 @@ def chunk_transcript(transcript: str, max_tokens: int = 100000) -> list[str]:
     chunks = []
     current_chunk = []
     current_length = 0
+    separator_length = 2  # Length of '. '
 
     for sentence in sentences:
         sentence_length = len(sentence)
-        if current_length + sentence_length > max_chars and current_chunk:
-            chunks.append('. '.join(current_chunk) + '.')
+        # Account for separator when calculating if we'd exceed max_chars
+        additional_length = sentence_length
+        if current_chunk:
+            additional_length += separator_length
+
+        if current_length + additional_length > max_chars and current_chunk:
+            # Join sentences and only add period if chunk doesn't already end with one
+            chunk_text = '. '.join(current_chunk)
+            if not chunk_text.endswith('.'):
+                chunk_text += '.'
+            chunks.append(chunk_text)
             current_chunk = [sentence]
             current_length = sentence_length
         else:
             current_chunk.append(sentence)
-            current_length += sentence_length
+            current_length += additional_length
 
     if current_chunk:
-        chunks.append('. '.join(current_chunk) + '.')
+        # Join sentences and only add period if chunk doesn't already end with one
+        chunk_text = '. '.join(current_chunk)
+        if not chunk_text.endswith('.'):
+            chunk_text += '.'
+        chunks.append(chunk_text)
 
     return chunks
 
