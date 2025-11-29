@@ -120,10 +120,46 @@ OPENAI_TTS_VOICE=alloy
 
 ### Manual Execution
 
-Run the pipeline manually to test:
+Run the pipeline manually:
 
 ```bash
-python src/main.py
+# Full execution (fetches videos, summarizes, sends emails)
+python -m src.main
+
+# Dry run mode - process videos but don't send emails
+python -m src.main --dry-run
+
+# Check for videos from last 48 hours instead of default 24
+python -m src.main --hours 48
+
+# Enable verbose (DEBUG) logging
+python -m src.main --verbose
+
+# Combine options
+python -m src.main --dry-run --hours 48 --verbose
+```
+
+### Command-Line Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--dry-run` | Process videos but don't send emails | False |
+| `--hours N` | Check for videos from last N hours | 24 |
+| `--verbose` | Enable DEBUG level logging | False |
+
+### Using the Shell Wrapper Script
+
+A convenience wrapper script is provided for cron jobs:
+
+```bash
+# Make executable (one-time)
+chmod +x run_pipeline.sh
+
+# Run the pipeline
+./run_pipeline.sh
+
+# Pass arguments to the pipeline
+./run_pipeline.sh --dry-run
 ```
 
 ### Automated Execution (Cron Job)
@@ -134,13 +170,45 @@ Set up hourly execution:
 crontab -e
 ```
 
-Add this line (adjust path to your installation):
+Add one of these lines (adjust path to your installation):
 
-```
-0 * * * * cd /path/to/youtube-sub-summarizer && source venv/bin/activate && python src/main.py >> logs/cron.log 2>&1
+```bash
+# Using the wrapper script (recommended)
+0 * * * * /path/to/youtube-sub-summarizer/run_pipeline.sh
+
+# Or directly with Python
+0 * * * * cd /path/to/youtube-sub-summarizer && source .venv/bin/activate && python -m src.main >> logs/cron.log 2>&1
 ```
 
-This runs every hour at minute 0.
+**Alternative cron schedules:**
+
+```bash
+# Every 2 hours
+0 */2 * * * /path/to/run_pipeline.sh
+
+# Every 6 hours
+0 */6 * * * /path/to/run_pipeline.sh
+
+# Daily at 9 AM
+0 9 * * * /path/to/run_pipeline.sh
+
+# Twice daily (9 AM and 6 PM)
+0 9,18 * * * /path/to/run_pipeline.sh
+```
+
+### Verify Cron Job
+
+```bash
+# Check if cron job is registered
+crontab -l
+
+# Monitor logs
+tail -f logs/cron.log
+tail -f logs/pipeline.log
+
+# Test wrapper script manually
+./run_pipeline.sh --dry-run
+```
 
 ## Project Structure
 
@@ -149,23 +217,36 @@ youtube-sub-summarizer/
 ├── src/
 │   ├── __init__.py
 │   ├── config.py          # Configuration management
-│   ├── youtube_client.py  # YouTube API integration (TODO)
-│   ├── transcript.py      # Transcript extraction (TODO)
-│   ├── summarizer.py      # AI summarization & TTS (TODO)
-│   ├── email_sender.py    # Email delivery (TODO)
-│   ├── database.py        # State management (TODO)
-│   └── main.py            # Main pipeline (TODO)
+│   ├── youtube_client.py  # YouTube API integration
+│   ├── transcript.py      # Transcript extraction
+│   ├── summarizer.py      # AI summarization & TTS
+│   ├── email_sender.py    # Email delivery
+│   ├── database.py        # State management (SQLite)
+│   └── main.py            # Main pipeline orchestration
+├── tests/                 # Unit tests
 ├── data/
 │   ├── audio/             # Generated audio files
-│   └── *.db               # SQLite database
-├── logs/                  # Log files
+│   └── processed_videos.db # SQLite database
+├── logs/
+│   ├── pipeline.log       # Pipeline execution logs (rotating)
+│   └── cron.log           # Cron wrapper logs
 ├── docs/                  # Project documentation
+├── run_pipeline.sh        # Cron wrapper script
 ├── .env                   # Environment variables (not in git)
 ├── .env.example           # Example environment file
 ├── .gitignore
 ├── requirements.txt
 └── README.md
 ```
+
+## Logging
+
+The pipeline maintains two log files in the `logs/` directory:
+
+- **pipeline.log**: Detailed execution logs with rotating file handler (10MB max, 5 backups)
+- **cron.log**: Wrapper script output for cron job monitoring
+
+Log format: `YYYY-MM-DD HH:MM:SS - module - LEVEL - message`
 
 ## Troubleshooting
 
@@ -196,6 +277,21 @@ youtube-sub-summarizer/
 - You've hit OpenAI's rate limits
 - Wait a few minutes and try again
 - Consider upgrading your OpenAI plan for higher limits
+
+### Cron Job Not Running
+
+- Check cron service status: `systemctl status cron`
+- Check cron logs: `grep CRON /var/log/syslog`
+- Ensure absolute paths in crontab
+- Verify script has execute permissions: `chmod +x run_pipeline.sh`
+- Test wrapper script manually: `./run_pipeline.sh --dry-run`
+
+### Pipeline Errors
+
+- Check logs: `tail -f logs/pipeline.log`
+- Run with verbose mode: `python -m src.main --dry-run --verbose`
+- Verify API keys in `.env` file
+- Check database permissions in `data/` directory
 
 ## Cost Estimation
 
