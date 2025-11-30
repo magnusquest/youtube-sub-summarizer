@@ -13,20 +13,20 @@ class TestSummarizeTranscript:
 
     @patch('src.summarizer.get_openai_client')
     def test_summarize_transcript_success(self, mock_get_client):
-        """Test successful transcript summarization."""
+        """Test successful transcript summarization with content restatement."""
         from src.summarizer import summarize_transcript
 
         # Setup mock client
         mock_client = MagicMock()
         mock_get_client.return_value = mock_client
 
-        # Setup mock response
+        # Setup mock response - reflects restatement approach
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
         mock_response.choices[0].message.content = (
-            "This video discusses AI development. "
-            "Key insights include the importance of data quality. "
-            "The speaker recommends starting with small experiments."
+            "The speaker discusses AI development and emphasizes data quality. "
+            "They explain that starting with small experiments is important. "
+            "The video covers practical approaches to machine learning projects."
         )
         mock_response.usage.total_tokens = 1500
         mock_response.usage.prompt_tokens = 1400
@@ -100,6 +100,39 @@ class TestSummarizeTranscript:
         assert call_args.kwargs['model'] == "gpt-4-turbo-preview"
         assert call_args.kwargs['temperature'] == 0.7
         assert call_args.kwargs['max_tokens'] == 500
+
+    @patch('src.summarizer.get_openai_client')
+    def test_summarize_transcript_uses_restatement_prompt(self, mock_get_client):
+        """Test that the prompt focuses on restating content rather than interpreting."""
+        from src.summarizer import summarize_transcript
+
+        mock_client = MagicMock()
+        mock_get_client.return_value = mock_client
+
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "Summary"
+        mock_response.usage.total_tokens = 100
+        mock_response.usage.prompt_tokens = 90
+        mock_response.usage.completion_tokens = 10
+        mock_client.chat.completions.create.return_value = mock_response
+
+        summarize_transcript("Test transcript content", "Test Title")
+
+        call_args = mock_client.chat.completions.create.call_args
+        messages = call_args.kwargs['messages']
+
+        # Check system message reflects restatement approach
+        system_message = messages[0]['content']
+        assert "restating" in system_message.lower()
+        assert "preserving" in system_message.lower()
+
+        # Check user prompt includes restatement instructions
+        user_message = messages[1]['content']
+        assert "restate" in user_message.lower()
+        assert "preserve all key points" in user_message.lower()
+        assert "condense redundancy" in user_message.lower()
+        assert "without adding interpretation" in user_message.lower()
 
 
 class TestGenerateAudioNarration:
