@@ -51,7 +51,7 @@ def summarize_transcript(
 ) -> str:
     """Generate a concise restatement of a YouTube video transcript.
 
-    Uses OpenAI GPT-4 to create a 3-5 sentence summary that restates
+    Uses OpenAI GPT-4 to create a 3-5 sentence restatement of
     the transcript content in a more concise form while preserving
     all key points and the speaker's perspective.
 
