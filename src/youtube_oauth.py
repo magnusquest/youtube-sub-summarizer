@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Optional
 
 from google.auth.transport.requests import Request
+import google.auth.credentials
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
@@ -49,10 +50,10 @@ class YouTubeOAuthClient:
         
         # Ensure data directory exists
         Path(token_file).parent.mkdir(parents=True, exist_ok=True)
-    
-    def authenticate(self) -> Credentials:
+    def authenticate(self) -> google.auth.credentials.Credentials:
         """Authenticate with YouTube OAuth 2.0.
         
+        This method:
         This method:
         1. Checks for existing valid token
         2. Refreshes expired token if possible
