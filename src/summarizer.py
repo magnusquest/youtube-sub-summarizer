@@ -79,9 +79,9 @@ Please restate everything discussed in this transcript in a more concise form:
 1. Preserve all key points and information from the original
 2. Condense redundancy, repetition, and unnecessary verbosity
 3. Maintain the speaker's actual points and perspective
-4. Present as a concise summary (3-5 sentences) without adding interpretation
+4. Present as a concise restatement (3-5 sentences) without adding interpretation
 
-Summary:"""
+Restatement:"""
 
     try:
         client = get_openai_client()
