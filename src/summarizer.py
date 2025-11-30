@@ -67,7 +67,7 @@ def summarize_transcript(
         Exception: If the OpenAI API call fails.
     """
     # Create prompt
-    prompt = f"""You are summarizing a YouTube video for an email digest.
+    prompt = f"""You are restating the content of a YouTube video transcript for an email digest.
 
 Video Title: {video_title}
 {'Video URL: ' + video_url if video_url else ''}
