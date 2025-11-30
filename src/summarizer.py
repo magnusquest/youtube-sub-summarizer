@@ -1,7 +1,9 @@
 """AI Summarization and Audio Narration module.
 
-This module provides functions to generate text summaries of YouTube video transcripts
-using OpenAI GPT-4 and convert summaries to audio using OpenAI TTS.
+This module provides functions to generate concise restatements of YouTube video
+transcripts using OpenAI GPT-4 and convert them to audio using OpenAI TTS.
+The summarization approach focuses on restating the transcript content in a more
+condensed form while preserving all key points and the speaker's perspective.
 
 Cost Estimation:
 - GPT-4 Turbo: ~$0.01/1K input tokens, ~$0.03/1K output tokens
@@ -47,10 +49,11 @@ def summarize_transcript(
     video_title: str,
     video_url: Optional[str] = None
 ) -> str:
-    """Generate a concise summary of a YouTube video transcript.
+    """Generate a concise restatement of a YouTube video transcript.
 
-    Uses OpenAI GPT-4 to create a 3-5 sentence summary that captures
-    the main topic, key insights, and actionable takeaways.
+    Uses OpenAI GPT-4 to create a 3-5 sentence restatement of
+    the transcript content in a more concise form while preserving
+    all key points and the speaker's perspective.
 
     Args:
         transcript: Full transcript text of the video.
@@ -58,13 +61,13 @@ def summarize_transcript(
         video_url: Optional YouTube URL for context.
 
     Returns:
-        3-5 sentence summary of the video content.
+        3-5 sentence concise restatement of the video content.
 
     Raises:
         Exception: If the OpenAI API call fails.
     """
     # Create prompt
-    prompt = f"""You are summarizing a YouTube video for an email digest.
+    prompt = f"""You are restating the content of a YouTube video transcript for an email digest.
 
 Video Title: {video_title}
 {'Video URL: ' + video_url if video_url else ''}
@@ -72,13 +75,13 @@ Video Title: {video_title}
 Transcript:
 {transcript}
 
-Please provide a concise 3-5 sentence summary that:
-1. Captures the main topic and key insights
-2. Highlights actionable takeaways or important points
-3. Is written in a clear, engaging style suitable for email
-4. Avoids unnecessary details while maintaining accuracy
+Please restate everything discussed in this transcript in a more concise form:
+1. Preserve all key points and information from the original
+2. Condense redundancy, repetition, and unnecessary verbosity
+3. Maintain the speaker's actual points and perspective
+4. Present as a concise restatement (3-5 sentences) without adding interpretation
 
-Summary:"""
+Restatement:"""
 
     try:
         client = get_openai_client()
@@ -87,8 +90,8 @@ Summary:"""
             messages=[
                 {
                     "role": "system",
-                    "content": "You are an expert at summarizing video content "
-                               "concisely and accurately."
+                    "content": "You are an expert at restating video content "
+                               "concisely while preserving all key points."
                 },
                 {"role": "user", "content": prompt}
             ],
