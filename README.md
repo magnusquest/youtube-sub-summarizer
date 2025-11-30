@@ -89,13 +89,19 @@ OPENAI_TTS_VOICE=alloy
 
 ## Configuration
 
-### YouTube Data API Setup
+### YouTube OAuth 2.0 Setup (Required)
 
+**IMPORTANT:** This application requires OAuth 2.0 authentication to access your YouTube subscriptions.
+
+📖 **See [OAUTH_SETUP.md](OAUTH_SETUP.md) for detailed step-by-step instructions.**
+
+**Quick summary:**
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing one
+2. Create a new project
 3. Enable YouTube Data API v3
-4. Create credentials (API Key)
-5. Copy the API key to your `.env` file
+4. Create OAuth 2.0 credentials (Desktop app)
+5. Download `credentials.json` to project root
+6. On first run, authenticate in your browser
 
 ### OpenAI API Setup
 

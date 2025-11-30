@@ -21,6 +21,7 @@ from src.email_sender import EmailSender
 from src.summarizer import create_summary_with_audio
 from src.transcript import get_transcript
 from src.youtube_client import YouTubeClient
+from src.youtube_oauth import YouTubeOAuthClient
 
 # Ensure logs directory exists
 LOGS_DIR = 'logs'
@@ -84,7 +85,8 @@ def run_pipeline(dry_run: bool = False, hours: int = 24) -> dict:
     logger.info(f"Looking for videos from last {hours} hours")
 
     # Initialize components
-    youtube = YouTubeClient()
+    youtube_oauth = YouTubeOAuthClient()
+    youtube_api = YouTubeClient()  # For non-authenticated calls (get_recent_videos)
     email_sender = EmailSender()
     db = Database()
 
@@ -97,9 +99,13 @@ def run_pipeline(dry_run: bool = False, hours: int = 24) -> dict:
     }
 
     try:
+        # Authenticate with OAuth
+        logger.info("Authenticating with YouTube OAuth...")
+        youtube_oauth.authenticate()
+
         # 1. Get user's subscriptions
         logger.info("Fetching subscriptions...")
-        subscriptions = youtube.get_subscriptions()
+        subscriptions = youtube_oauth.get_subscriptions()
         logger.info(f"Found {len(subscriptions)} subscribed channels")
 
         # 2. Get recent videos from each channel
@@ -111,7 +117,7 @@ def run_pipeline(dry_run: bool = False, hours: int = 24) -> dict:
             channel_name = subscription['channel_name']
 
             try:
-                videos = youtube.get_recent_videos(channel_id, hours=hours)
+                videos = youtube_api.get_recent_videos(channel_id, hours=hours)
                 if videos:
                     logger.info(
                         f"Found {len(videos)} new video(s) from {channel_name}"

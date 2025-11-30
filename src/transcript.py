@@ -63,7 +63,8 @@ def get_transcript(video_id: str, languages: list[str] | None = None) -> str | N
 
     try:
         # Fetch transcript list
-        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+        api = YouTubeTranscriptApi()
+        transcript_list = api.list(video_id)
 
         # Try to find transcript in preferred languages
         transcript = None
@@ -88,7 +89,7 @@ def get_transcript(video_id: str, languages: list[str] | None = None) -> str | N
 
         # Fetch and format transcript
         transcript_data = transcript.fetch()
-        full_text = ' '.join([entry['text'] for entry in transcript_data])
+        full_text = ' '.join([entry.text for entry in transcript_data])
 
         # Clean up text
         cleaned_text = clean_transcript_text(full_text)
@@ -120,7 +121,8 @@ def get_available_languages(video_id: str) -> list[dict]:
         Returns empty list if no transcripts are available.
     """
     try:
-        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+        api = YouTubeTranscriptApi()
+        transcript_list = api.list(video_id)
         languages = []
 
         for transcript in transcript_list:
