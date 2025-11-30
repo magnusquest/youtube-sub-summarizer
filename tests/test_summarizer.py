@@ -13,7 +13,7 @@ class TestSummarizeTranscript:
 
     @patch('src.summarizer.get_openai_client')
     def test_summarize_transcript_success(self, mock_get_client):
-        """Test successful transcript summarization with content restatement."""
+        """Test successful transcript summarization."""
         from src.summarizer import summarize_transcript
 
         # Setup mock client
