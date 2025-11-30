@@ -17,7 +17,13 @@ build/
 # Data
 data/*.db
 data/audio/*.mp3
+data/*.pickle
 logs/*.log
+
+# OAuth Credentials (NEVER COMMIT!)
+credentials.json
+token.pickle
+youtube_token.pickle
 
 # IDE
 .vscode/
