@@ -84,9 +84,9 @@ Please restate everything discussed in this transcript in a more concise form:
 Restatement:"""
 
     try:
-        client = get_openai_client()
+        client : OpenAI = get_openai_client()
         response = client.chat.completions.create(
-            model="gpt-4-turbo-preview",
+            model="gpt-4o-mini",
             messages=[
                 {
                     "role": "system",

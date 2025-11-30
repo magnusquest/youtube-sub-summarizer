@@ -64,12 +64,14 @@ def setup_logging(verbose: bool = False) -> None:
     root_logger.addHandler(file_handler)
 
 
-def run_pipeline(dry_run: bool = False, hours: int = 24) -> dict:
+def run_pipeline(dry_run: bool = False, hours: int = 24, max_duration_minutes: int = 30) -> dict:
     """Main pipeline: fetch videos → process → email.
 
     Args:
         dry_run: If True, process but don't send emails.
         hours: Check for videos from last N hours.
+        max_duration_minutes: Maximum video duration in minutes (default: 30).
+                             Videos longer than this will be skipped.
 
     Returns:
         Dictionary containing pipeline statistics:
@@ -78,11 +80,13 @@ def run_pipeline(dry_run: bool = False, hours: int = 24) -> dict:
             - processed: Successfully processed count
             - failed: Failed processing count
             - skipped: Skipped (no transcript) count
+            - skipped_too_long: Skipped (video too long) count
     """
     start_time = datetime.now(timezone.utc)
     logger.info(f"=== Pipeline started at {start_time.isoformat()} ===")
     logger.info(f"Dry run mode: {dry_run}")
     logger.info(f"Looking for videos from last {hours} hours")
+    logger.info(f"Max video duration: {max_duration_minutes} minutes")
 
     # Initialize components
     youtube_oauth = YouTubeOAuthClient()
@@ -95,7 +99,8 @@ def run_pipeline(dry_run: bool = False, hours: int = 24) -> dict:
         'new_videos': 0,
         'processed': 0,
         'failed': 0,
-        'skipped': 0
+        'skipped': 0,
+        'skipped_too_long': 0
     }
 
     try:
@@ -144,7 +149,36 @@ def run_pipeline(dry_run: bool = False, hours: int = 24) -> dict:
             logger.info(f"Video ID: {video['video_id']}")
 
             try:
-                # a. Extract transcript
+                # a. Check video duration
+                logger.info("Checking video duration...")
+                duration_seconds = youtube_api.get_video_duration(video['video_id'])
+
+                if duration_seconds is None:
+                    logger.warning("Could not fetch video duration, skipping video")
+                    db.mark_video_processed(
+                        video,
+                        status='skipped',
+                        error_message='Could not fetch video duration'
+                    )
+                    stats['skipped'] += 1
+                    continue
+
+                duration_minutes = duration_seconds / 60
+                logger.info(f"Video duration: {duration_minutes:.1f} minutes ({duration_seconds} seconds)")
+
+                if duration_minutes > max_duration_minutes:
+                    logger.warning(
+                        f"Video is too long ({duration_minutes:.1f} min > {max_duration_minutes} min), skipping"
+                    )
+                    db.mark_video_processed(
+                        video,
+                        status='skipped',
+                        error_message=f'Video too long ({duration_minutes:.1f} minutes)'
+                    )
+                    stats['skipped_too_long'] += 1
+                    continue
+
+                # b. Extract transcript
                 logger.info("Extracting transcript...")
                 transcript = get_transcript(video['video_id'])
 
@@ -160,7 +194,7 @@ def run_pipeline(dry_run: bool = False, hours: int = 24) -> dict:
 
                 logger.info(f"Transcript length: {len(transcript)} characters")
 
-                # b. Generate summary and audio
+                # c. Generate summary and audio
                 logger.info("Generating summary and audio narration...")
                 video_url = f"https://youtube.com/watch?v={video['video_id']}"
                 result = create_summary_with_audio(
@@ -175,7 +209,7 @@ def run_pipeline(dry_run: bool = False, hours: int = 24) -> dict:
                 logger.info(f"Summary: {summary[:100]}...")
                 logger.info(f"Audio saved to: {audio_path}")
 
-                # c. Send email
+                # d. Send email
                 if not dry_run:
                     logger.info("Sending email...")
                     video_data = {
@@ -187,7 +221,7 @@ def run_pipeline(dry_run: bool = False, hours: int = 24) -> dict:
                 else:
                     logger.info("DRY RUN: Email not sent")
 
-                # d. Mark as processed
+                # e. Mark as processed
                 db.mark_video_processed(video, status='completed')
                 stats['processed'] += 1
                 logger.info(
@@ -217,6 +251,7 @@ def run_pipeline(dry_run: bool = False, hours: int = 24) -> dict:
         logger.info(f"Successfully processed: {stats['processed']}")
         logger.info(f"Failed: {stats['failed']}")
         logger.info(f"Skipped (no transcript): {stats['skipped']}")
+        logger.info(f"Skipped (too long): {stats['skipped_too_long']}")
 
         # Get overall database stats
         db_stats = db.get_processing_stats()
@@ -258,6 +293,12 @@ def main(args: Optional[list[str]] = None) -> int:
         help='Check for videos from last N hours (default: 24)'
     )
     parser.add_argument(
+        '--limit',
+        type=int,
+        default=30,
+        help='Maximum video duration in minutes (default: 30). Videos longer than this will be skipped.'
+    )
+    parser.add_argument(
         '--verbose',
         action='store_true',
         help='Enable verbose (DEBUG) logging'
@@ -271,7 +312,11 @@ def main(args: Optional[list[str]] = None) -> int:
     try:
         # Validate configuration before running
         validate_config()
-        run_pipeline(dry_run=parsed_args.dry_run, hours=parsed_args.hours)
+        run_pipeline(
+            dry_run=parsed_args.dry_run,
+            hours=parsed_args.hours,
+            max_duration_minutes=parsed_args.limit
+        )
         return 0
     except ValueError as e:
         logger.error(f"Configuration error: {e}")

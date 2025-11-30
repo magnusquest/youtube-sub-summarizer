@@ -278,26 +278,81 @@ class YouTubeClient:
         )
         return videos
     
+    def get_video_duration(self, video_id: str) -> Optional[int]:
+        """Get the duration of a video in seconds.
+
+        Args:
+            video_id: The YouTube video ID.
+
+        Returns:
+            Duration in seconds, or None if not found.
+
+        Raises:
+            HttpError: If the API call fails.
+        """
+        def make_request():
+            return self.youtube.videos().list(
+                part='contentDetails',
+                id=video_id
+            ).execute()
+
+        response = self._api_call_with_retry(make_request)
+        self.quota_tracker.log_usage(f'videos.list ({video_id})', 1)
+
+        items = response.get('items', [])
+        if not items:
+            logger.warning(f"No video found for ID: {video_id}")
+            return None
+
+        # Parse ISO 8601 duration format (e.g., "PT1H23M45S")
+        duration_str = items[0]['contentDetails']['duration']
+        return self._parse_duration(duration_str)
+
+    def _parse_duration(self, duration_str: str) -> int:
+        """Parse ISO 8601 duration format to seconds.
+
+        Args:
+            duration_str: ISO 8601 duration string (e.g., "PT1H23M45S").
+
+        Returns:
+            Duration in seconds.
+        """
+        import re
+
+        # Pattern to extract hours, minutes, and seconds
+        pattern = r'PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?'
+        match = re.match(pattern, duration_str)
+
+        if not match:
+            logger.warning(f"Failed to parse duration: {duration_str}")
+            return 0
+
+        hours = int(match.group(1) or 0)
+        minutes = int(match.group(2) or 0)
+        seconds = int(match.group(3) or 0)
+
+        return hours * 3600 + minutes * 60 + seconds
+
     def get_recent_videos_from_subscriptions(
         self, hours: int = 24, max_channels: Optional[int] = None
     ) -> list[dict]:
         """Fetch recent videos from all subscribed channels.
-        
+
         Args:
             hours: Number of hours to look back for recent videos (default: 24).
             max_channels: Maximum number of channels to check (for quota management).
-        
+
         Returns:
             List of all recent videos from subscribed channels.
-        
+
         Raises:
             HttpError: If any API call fails.
         """
         subscriptions = self.get_subscriptions()
-        
+
         if max_channels:
             subscriptions = subscriptions[:max_channels]
-        
+
         all_videos = []
         for subscription in subscriptions:
             try:
@@ -308,10 +363,10 @@ class YouTubeClient:
                     f"Error fetching videos from {subscription['channel_name']}: {e}"
                 )
                 continue
-        
+
         # Sort by published date, newest first
         all_videos.sort(key=lambda x: x['published_at'], reverse=True)
-        
+
         logger.info(
             f"Retrieved {len(all_videos)} total recent videos "
             f"from {len(subscriptions)} channels"
