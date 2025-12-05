@@ -166,6 +166,20 @@ def run_pipeline(dry_run: bool = False, hours: int = 24, max_duration_minutes: i
                 duration_minutes = duration_seconds / 60
                 logger.info(f"Video duration: {duration_minutes:.1f} minutes ({duration_seconds} seconds)")
 
+                # Check minimum duration (1 minute)
+                if duration_minutes < 1:
+                    logger.warning(
+                        f"Video is too short ({duration_minutes:.1f} min < 1 min), skipping"
+                    )
+                    db.mark_video_processed(
+                        video,
+                        status='skipped',
+                        error_message=f'Video too short ({duration_minutes:.1f} minutes)'
+                    )
+                    stats['skipped'] += 1
+                    continue
+
+                # Check maximum duration
                 if duration_minutes > max_duration_minutes:
                     logger.warning(
                         f"Video is too long ({duration_minutes:.1f} min > {max_duration_minutes} min), skipping"
